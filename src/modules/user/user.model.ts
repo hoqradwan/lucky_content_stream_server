@@ -9,7 +9,7 @@ const PendingUserSchema = new Schema<IPendingUser>(
     confirmPassword: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "admin","creator"],
     },
   },
   { timestamps: true },
@@ -42,7 +42,7 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ["admin", "user"],
+      enum: ["admin", "user", "creator"],
       default: "user",
     },
     status: {
@@ -67,6 +67,17 @@ const UserSchema = new Schema<IUser>(
       type: String, // Store the name of the promo code
       default: "", // Default value will be an empty string
     },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: [0, 0],
+      },
+    },
     expiryDate: {
       type: Date, // Store the name of the promo code
       default: null, // Default value will be an empty string
@@ -80,12 +91,18 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    isActive : {
+      type : Boolean,
+      default : false
+    }
   },
   { timestamps: true },
 );
 
 export const UserModel =
   mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+
+UserSchema.index({ location: "2dsphere" });
 
 const OTPSchema = new Schema<IOTP>({
   email: { type: String, required: true, trim: true },

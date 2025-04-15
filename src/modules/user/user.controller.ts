@@ -12,6 +12,7 @@ import {
   findUserById,
   generateOTP,
   generateToken,
+  getDistanceAndETA,
   getStoredOTP,
   getUserList,
   getUserRegistrationDetails,
@@ -31,14 +32,16 @@ import {
   Nodemailer_GMAIL,
   Nodemailer_GMAIL_PASSWORD,
 } from "../../config";
-import { emitNotification } from "../../utils/socket";
+// import { emitNotification } from "../../utils/socket";
 import httpStatus from "http-status";
+import { CustomRequest } from "../../utils/customRequest";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
-  const { name, email, password, confirmPassword } = req.body;
+  const { name, email, password, confirmPassword, role } = req.body;
+  const validationError = validateUserInput(name, email, password,role);
 
-  const validationError = validateUserInput(name, email, password);
   if (validationError) {
+    
     return sendError(res, httpStatus.BAD_REQUEST, validationError);
   }
 
@@ -47,6 +50,7 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
       message: "Passwords do not match",
     });
   }
+
 
   const isUserRegistered = await findUserByEmail(email);
   if (isUserRegistered) {
@@ -60,11 +64,14 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
     {
       name,
       email,
+      role,
       password,
       confirmPassword,
     },
     { upsert: true },
   );
+
+
 
   const otp = generateOTP();
   await saveOTP(email, otp);
@@ -74,6 +81,8 @@ export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const token = jwt.sign({ email }, JWT_SECRET_KEY as string, {
     expiresIn: "7d",
   });
+
+  console.log("====>>>> execute this line")
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -325,7 +334,7 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const { name, password } = (await getUserRegistrationDetails(
+  const { name, password, role } = (await getUserRegistrationDetails(
     email,
   )) as IPendingUser;
   //console.log(objective, "objective from controller");
@@ -334,17 +343,18 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   const { createdUser } = await createUser({
     name,
     email,
+    role,
     hashedPassword,
   });
 
   const userMsg = "Welcome to LikeMine_App.";
   const adminMsg = `${name} has successfully registered.`;
 
-  await emitNotification({
-    userId: createdUser._id as string,
-    userMsg,
-    adminMsg,
-  });
+  // await emitNotification({
+  //   userId: createdUser._id as string,
+  //   userMsg,
+  //   adminMsg,
+  // });
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -528,30 +538,9 @@ export const getSelfInfo = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const getAllUsers = catchAsync(async (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return sendError(res, httpStatus.UNAUTHORIZED, {
-      message: "No token provided or invalid format.",
-    });
-  }
-  const token = authHeader.split(" ")[1];
-  const decoded = jwt.verify(token, JWT_SECRET_KEY as string) as { id: string };
-  const adminId = decoded.id;
+export const getAllUsers = catchAsync(async (req: CustomRequest, res: Response) => {
+  const {id : adminId} = req.user;
 
-  // Find the user by userId
-  const user = await findUserById(adminId);
-  if (!user) {
-    return sendError(res, httpStatus.NOT_FOUND, {
-      message: "This admin account doesnot exist.",
-    });
-  }
-  // Check if the user is an admin
-  if (user.role !== "admin") {
-    return sendError(res, httpStatus.FORBIDDEN, {
-      message: "Only admins can access the user list.",
-    });
-  }
   // Pagination parameters
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
@@ -683,6 +672,7 @@ export const deleteUser = catchAsync(async (req: Request, res: Response) => {
 //admin-login
 export const adminloginUser = catchAsync(
   async (req: Request, res: Response) => {
+
     const { email, password } = req.body;
     // const lang = req.headers.lang as string;
 
@@ -694,6 +684,7 @@ export const adminloginUser = catchAsync(
     // }
 
     const user = await findUserByEmail(email);
+    console.log({user})
     if (!user) {
       return sendError(res, httpStatus.NOT_FOUND, {
         message:
@@ -759,3 +750,105 @@ export const adminloginUser = catchAsync(
     });
   },
 );
+
+// mechanic-login
+export const mechanicloginUser = catchAsync(
+  async (req: Request, res: Response) => {
+
+    const { email, password } = req.body;
+    // const lang = req.headers.lang as string;
+
+    // // Check language validity
+    // if (!lang || (lang !== "es" && lang !== "en")) {
+    //   return sendError(res, httpStatus.BAD_REQUEST, {
+    //     message: "Choose a language",
+    //   });
+    // }
+
+    const user = await findUserByEmail(email);
+    console.log({user})
+    if (!user) {
+      return sendError(res, httpStatus.NOT_FOUND, {
+        message:
+          // lang === "es"
+          //   ? "Esta cuenta no existe."
+          //   :
+          "This account does not exist.",
+      });
+    }
+
+    // check admin or not
+    //  console.log(user,"user")
+    if (user.role !== "mechanic") {
+      return sendError(res, httpStatus.FORBIDDEN, {
+        message:
+          // lang === "es"
+          //   ? "Solo los administradores pueden iniciar sesión."
+          //   :
+          "Only mechanics can login.",
+      });
+    }
+
+    // Check password validity
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password as string,
+    );
+    if (!isPasswordValid) {
+      return sendError(res, httpStatus.UNAUTHORIZED, {
+        message:
+          // lang === "es" ? "¡Contraseña incorrecta!" :
+          "Wrong password!",
+      });
+    }
+
+    // Generate new token for the logged-in user
+    const newToken = generateToken({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      image: user?.image,
+      // lang: lang,
+    });
+
+    // Send the response
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message:
+        // lang === "es" ? "¡Inicio de sesión completo!" :
+        "Login complete!",
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          image: user?.image,
+        },
+        token: newToken,
+      },
+    });
+  },
+);
+
+
+export const getUserToMechanicDistance = async (req: Request, res: Response) => {
+  try {
+    const { userId, mechanicId } = req.params;
+    const result = await getDistanceAndETA(userId, mechanicId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Distance and ETA fetched successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    console.error("Error in getUserToMechanicDistance:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
