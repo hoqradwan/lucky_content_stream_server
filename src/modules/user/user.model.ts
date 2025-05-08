@@ -9,7 +9,7 @@ const PendingUserSchema = new Schema<IPendingUser>(
     confirmPassword: { type: String, required: true, trim: true },
     role: {
       type: String,
-      enum: ["user", "admin","creator"],
+      enum: ["user", "admin", "creator"],
     },
   },
   { timestamps: true },
@@ -91,9 +91,9 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
-    isActive : {
-      type : Boolean,
-      default : false
+    isActive: {
+      type: Boolean,
+      default: false
     }
   },
   { timestamps: true },

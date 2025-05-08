@@ -3,11 +3,14 @@ import { ICategory } from './category.interface';
 
 const CategorySchema = new Schema<ICategory>(
     {
-        name: { type: String, required: true, trim: true },
-        description: { type: String, trim: true, default :"" },
+        type: {
+            type: String,
+            enum: ["Episode", "Movie"],
+            required: true,
+        }
     },
     {
-        timestamps: true, // Automatically adds createdAt and updatedAt fields
+        timestamps: true,
     }
 );
 

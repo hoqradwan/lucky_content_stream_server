@@ -1,4 +1,4 @@
 export interface ICategory extends Document {
-    name: string;
-    description?: string;
+    type: string;
+    enum: ['Episode', 'Movie'];
 }
