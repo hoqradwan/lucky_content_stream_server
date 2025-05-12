@@ -38,12 +38,12 @@ import { CustomRequest } from "../../utils/customRequest";
 
 export const registerUser = catchAsync(async (req: Request, res: Response) => {
   const { name, email, password, confirmPassword, role } = req.body;
-  const validationError = validateUserInput(name, email, password,role);
+  // const validationError = validateUserInput(name, email, password,role);
 
-  if (validationError) {
+  // if (validationError) {
     
-    return sendError(res, httpStatus.BAD_REQUEST, validationError);
-  }
+  //   return sendError(res, httpStatus.BAD_REQUEST, validationError);
+  // }
 
   if (password !== confirmPassword) {
     return sendError(res, httpStatus.BAD_REQUEST, {

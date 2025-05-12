@@ -8,10 +8,12 @@ import { promoCodeRoutes } from "../modules/promoCode/promoCode.route";
 import { feedBackRoutes } from "../modules/Feedback/feedback.route";
 import { subscriptionRoutes } from "../modules/subscription/subscription.route";
 import { paymentRoutes } from "../modules/payment/payment.route";
+import { CategoryRoutes } from "../modules/Category/category.route";
 
 const router = express.Router();
 
 router.use("/api/v1/user", UserRoutes);
+router.use("/api/v1/category", CategoryRoutes);
 router.use("/api/v1/terms", TermsRoutes);
 router.use("/api/v1/about", AboutRoutes);
 router.use("/api/v1/privacy", PrivacyRoutes);
