@@ -7,4 +7,4 @@ const router = express.Router();
 
 router.post('/', adminMiddleware('admin', 'creator'), createGenre)
 router.get('/', adminMiddleware('admin', 'creator'), getAllGenre)
-export const regionRoutes = router;
+export const GenreRoutes = router;

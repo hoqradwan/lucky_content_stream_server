@@ -9,10 +9,11 @@ export const createContentIntoDB = async (contentData : IContent ) => {
     if (!categoryExist) {
         throw new Error("Category not found");
     }
-    const genreExist = await Genre.find({ genre: { $in: genre } });
+    const genreExist = await Genre.find({ _id: { $in: genre } });
     if (genreExist.length !== genre.length) {
         throw new Error("Some genres not found");
     }
+
     // Simulate a database operation
     const result = await Content.create(contentData);
     return result;

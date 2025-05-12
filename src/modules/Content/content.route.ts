@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {  createContent } from './content.controller';
+import { adminMiddleware } from '../../middlewares/auth';
 
 const router = Router();
 
@@ -7,7 +8,7 @@ const router = Router();
 // router.get('/', getContent);
 
 // Route to create new content
-router.post('/', createContent);
+router.post('/',adminMiddleware("admin","creator"), createContent);
 
 // // Route to update existing content
 // router.put('/:id', updateContent);
