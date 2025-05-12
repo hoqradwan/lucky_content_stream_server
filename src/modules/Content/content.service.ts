@@ -18,3 +18,16 @@ export const createContentIntoDB = async (contentData : IContent ) => {
     const result = await Content.create(contentData);
     return result;
 }
+
+export const getContentsFromDB = async()=>{
+    const contents = await Content.find();
+    return contents;
+}
+export const getContentsByIdFromDB = async(contentId : string)=>{
+    const contents = await Content.findById(contentId);
+    return contents;
+}
+export const deleteContentByIdFromDB = async(contentId : string)=>{
+    const contents = await Content.findByIdAndDelete(contentId);
+    return contents;
+}
